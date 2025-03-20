@@ -104,15 +104,20 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script>
         // Firebase Configuration (working demo config)
+         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+          import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-analytics.js";
+  
         const firebaseConfig = {
-            apiKey: "AIzaSyBevmebT32hEKzHX9vVqGTedgPBA3M1qkM",
-            authDomain: "guess-game-demo-3d3b3.firebaseapp.com",
-            databaseURL: "https://guess-game-demo-3d3b3-default-rtdb.firebaseio.com",
-            projectId: "guess-game-demo-3d3b3",
-            storageBucket: "guess-game-demo-3d3b3.appspot.com",
-            messagingSenderId: "1064210899885",
-            appId: "1:1064210899885:web:6e5d1a2b4d4a4b4e5d1a2b"
-        };
+        apiKey: "AIzaSyAnuIfrwNSMRBkj8DqEunFrui03P81snOA",
+        authDomain: "guess-project-4ab53.firebaseapp.com",
+        projectId: "guess-project-4ab53",
+        storageBucket: "guess-project-4ab53.firebasestorage.app",
+        messagingSenderId: "227786408158",
+        appId: "1:227786408158:web:0ee64f9f675d6daeb0824f",
+        measurementId: "G-7RNKPPJ7H2"
+          };
+        // const app = initializeApp(firebaseConfig);
+        //   const analytics = getAnalytics(app);
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
