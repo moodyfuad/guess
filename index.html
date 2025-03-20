@@ -1,96 +1,25 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لعبة التخمين الجماعية</title>
-    <style>
-        /* style.css */
-        :root {
-            --primary: #2B2D42;
-            --secondary: #8D99AE;
-            --accent: #EF233C;
-            --background: #121317;
-        }
-
-        body {
-            margin: 0;
-            padding: 20px;
-            background: var(--background);
-            color: white;
-            font-family: Arial, sans-serif;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .card {
-            background: var(--primary);
-            border-radius: 15px;
-            padding: 20px;
-            margin: 10px;
-            cursor: pointer;
-            transition: transform 0.3s;
-            display: inline-block;
-        }
-
-        button {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 25px;
-            cursor: pointer;
-            margin: 10px;
-        }
-
-        #loading {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 2em;
-        }
-
-        .error {
-            color: #ff4444;
-            padding: 10px;
-            margin: 10px 0;
-        }
-
-        input {
-            padding: 10px;
-            margin: 10px;
-            border-radius: 5px;
-            border: 1px solid var(--secondary);
-        }
-    </style>
+    <title>لعبة التخمين</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="loading" class="hidden">⚙️ جاري التحميل...</div>
     <div class="container" id="lobby">
-        <h1>مرحبا بك في لعبة التخمين!</h1>
+        <h1>مرحبًا بك في لعبة التخمين!</h1>
         <input type="text" id="roomId" placeholder="أدخل كود الغرفة" value="12345">
-        <button onclick="handleRoom()">إنشاء/الدخول للغرفة</button>
+        <button onclick="joinRoom()">إنشاء/الدخول للغرفة</button>
         <div id="lobbyError" class="error hidden"></div>
     </div>
 
     <div class="container hidden" id="game">
         <div id="playerCount"></div>
+        <div id="categorySelection" class="hidden">
+            <h2>اختر الفئة:</h2>
+            <div id="categories"></div>
+        </div>
         <div id="gameBoard" class="hidden">
             <div id="itemsContainer"></div>
             <div id="chat">
@@ -98,141 +27,11 @@
                 <button onclick="submitGuess()">إرسال</button>
             </div>
         </div>
+        <div id="gameError" class="error hidden"></div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script>
-        // Firebase Configuration (working demo config)
-         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-          import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-analytics.js";
-  
-        const firebaseConfig = {
-        apiKey: "AIzaSyAnuIfrwNSMRBkj8DqEunFrui03P81snOA",
-        authDomain: "guess-project-4ab53.firebaseapp.com",
-        projectId: "guess-project-4ab53",
-        storageBucket: "guess-project-4ab53.firebasestorage.app",
-        messagingSenderId: "227786408158",
-        appId: "1:227786408158:web:0ee64f9f675d6daeb0824f",
-        measurementId: "G-7RNKPPJ7H2"
-          };
-        // const app = initializeApp(firebaseConfig);
-        //   const analytics = getAnalytics(app);
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
-        let currentRoom;
-        let currentUser = { id: Date.now().toString() };
-        const categories = {
-            'مشاهير': [
-                { name: "عمرو دياب", image: "https://via.placeholder.com/150/FF0000/FFFFFF?text=Amr+Diab" },
-                { name: "نيللي كريم", image: "https://via.placeholder.com/150/00FF00/FFFFFF?text=Nelly+Karam" },
-                { name: "أحمد حلمي", image: "https://via.placeholder.com/150/0000FF/FFFFFF?text=Ahmed+Helmy" }
-            ],
-            'أطعمة': [
-                { name: "كبسة", image: "https://via.placeholder.com/150/FFA500/FFFFFF?text=Kabsa" },
-                { name: "شاورما", image: "https://via.placeholder.com/150/800080/FFFFFF?text=Shawarma" },
-                { name: "كنافة", image: "https://via.placeholder.com/150/FFFF00/000000?text=Kunafa" }
-            ]
-        };
-
-        async function handleRoom() {
-            try {
-                showLoading(true);
-                const roomId = document.getElementById('roomId').value.trim();
-                if (!roomId) throw new Error('يجب إدخال كود الغرفة');
-
-                currentRoom = database.ref(`rooms/${roomId}`);
-                const snapshot = await currentRoom.once('value');
-                
-                if (!snapshot.exists()) {
-                    await currentRoom.set({
-                        players: {},
-                        state: 'waiting',
-                        category: 'مشاهير' // Default category
-                    });
-                }
-
-                await currentRoom.child('players').child(currentUser.id).set({
-                    name: `Player ${Math.floor(Math.random() * 100)}`,
-                    ready: false,
-                    selection: null
-                });
-
-                setupRoomListeners();
-                showGameScreen();
-            } catch (error) {
-                showError('lobbyError', error.message);
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        function setupRoomListeners() {
-            currentRoom.child('players').on('value', snapshot => {
-                const players = snapshot.val() || {};
-                document.getElementById('playerCount').textContent = 
-                    `اللاعبون: ${Object.keys(players).length}/2`;
-                
-                if (Object.keys(players).length === 2) {
-                    startGame();
-                }
-            });
-        }
-
-        function startGame() {
-            document.getElementById('gameBoard').classList.remove('hidden');
-            loadGameItems();
-        }
-
-        function loadGameItems() {
-            const category = currentRoom.child('category').once('value').then(snap => snap.val());
-            const items = categories[category];
-            
-            const container = document.getElementById('itemsContainer');
-            container.innerHTML = items.map(item => `
-                <div class="card" onclick="selectItem('${item.name}')">
-                    <img src="${item.image}" alt="${item.name}" style="height: 150px;">
-                    <p>${item.name}</p>
-                </div>
-            `).join('');
-        }
-
-        function selectItem(itemName) {
-            currentRoom.child(`players/${currentUser.id}/selection`).set(itemName);
-            document.getElementById('chat').classList.remove('hidden');
-        }
-
-        async function submitGuess() {
-            const guess = document.getElementById('guessInput').value.trim().toLowerCase();
-            const players = (await currentRoom.child('players').once('value')).val();
-            const opponentId = Object.keys(players).find(id => id !== currentUser.id);
-            const opponentSelection = players[opponentId].selection.toLowerCase();
-
-            if (guess === opponentSelection) {
-                alert('!مبروك، لقد فزت');
-                currentRoom.update({ state: 'finished' });
-            } else {
-                alert('!تخمين خاطئ، حاول مرة أخرى');
-            }
-        }
-
-        // Utility functions
-        function showLoading(show) {
-            document.getElementById('loading').classList.toggle('hidden', !show);
-        }
-
-        function showError(elementId, message) {
-            const errorEl = document.getElementById(elementId);
-            errorEl.textContent = message;
-            errorEl.classList.remove('hidden');
-            setTimeout(() => errorEl.classList.add('hidden'), 5000);
-        }
-
-        function showGameScreen() {
-            document.getElementById('lobby').classList.add('hidden');
-            document.getElementById('game').classList.remove('hidden');
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
